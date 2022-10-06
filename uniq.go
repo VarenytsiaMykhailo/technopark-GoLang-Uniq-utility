@@ -13,16 +13,15 @@ import (
 )
 
 func main() {
-
-	options, err := ValidateArguments(os.Args[1:])
+	options, err := validateArguments(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
-	strings := ScanLines(options.input)
+	strings := scanLines(options.input)
 
-	ignoreCase := options.ignoreRegister
+	ignoreCase := options.ignoreCase
 
-	var transformedStrings []string = nil
+	var transformedStrings []string
 	if options.ignoreFieldsCount != 0 || options.ignoreCharsCount != 0 {
 		transformedStrings = make([]string, len(strings))
 		for idx, v := range strings {
@@ -33,16 +32,19 @@ func main() {
 	result := ""
 	switch options.outputMode {
 	case normalParam:
-		result = WithoutParams(strings, transformedStrings, ignoreCase)
+		result = withoutParamsAlgo(strings, transformedStrings, ignoreCase)
 	case cParam:
-		result = C(strings, transformedStrings, ignoreCase)
+		result = cParamAlgo(strings, transformedStrings, ignoreCase)
 	case dParam:
-		result = D(strings, transformedStrings, ignoreCase)
+		result = dParamAlgo(strings, transformedStrings, ignoreCase)
 	case uParam:
-		result = U(strings, transformedStrings, ignoreCase)
+		result = uParamAlgo(strings, transformedStrings, ignoreCase)
 	}
 
-	io.WriteString(options.output, result)
+	_, err = io.WriteString(options.output, result)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 const (
@@ -56,14 +58,14 @@ const (
 
 type options struct {
 	outputMode        int  // -c | -d | -u
-	ignoreRegister    bool // -i
+	ignoreCase        bool // -i
 	ignoreFieldsCount int  // -f num
 	ignoreCharsCount  int  // -s chars
 	input             io.Reader
 	output            io.Writer
 }
 
-func ValidateArguments(args []string) (options, error) {
+func validateArguments(args []string) (options, error) {
 	var flags flag.FlagSet
 
 	cFlag := flags.Bool("c", false, "")
@@ -74,7 +76,7 @@ func ValidateArguments(args []string) (options, error) {
 	sFlag := flags.Int("s", 0, "")
 	flags.Parse(args)
 
-	var opts options = options{
+	opts := options{
 		normalParam,
 		false,
 		0,
@@ -95,7 +97,7 @@ func ValidateArguments(args []string) (options, error) {
 		}
 		opts.outputMode = dParam
 	}
-	opts.ignoreRegister = *iFlag
+	opts.ignoreCase = *iFlag
 
 	if *fFlag < 0 {
 		return opts, errors.New("-f value should be > 0")
@@ -117,14 +119,13 @@ func ValidateArguments(args []string) (options, error) {
 	for idx := 0; idx < len(args); idx++ {
 		_, err := strconv.Atoi(args[idx])
 		if args[idx][0] != '-' && err != nil {
-			var err error
 			opts.input, err = os.Open(args[idx])
 			if err != nil {
 				return opts, err
 			}
 			idx++
 			if idx != len(args) {
-				var file, err = os.Create(args[idx])
+				file, err := os.Create(args[idx])
 				if err != nil {
 					return opts, err
 				}
@@ -136,7 +137,7 @@ func ValidateArguments(args []string) (options, error) {
 	return opts, nil
 }
 
-func ScanLines(reader io.Reader) []string {
+func scanLines(reader io.Reader) []string {
 	var result []string
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -164,83 +165,78 @@ func transformString(str string, ignoreFieldsCount int, ignoreCharsCount int) st
 	return newStr[ignoreCharsCount+1:]
 }
 
-func WithoutParams(strings []string, transformedStrings []string, ignoreCase bool) string {
-	entries := MainAlgo(strings, transformedStrings, ignoreCase)
-	result := ""
+func withoutParamsAlgo(strings []string, transformedStrings []string, ignoreCase bool) (result string) {
+	entries := mainAlgo(strings, transformedStrings, ignoreCase)
 	for _, v := range entries {
-		result += *(v.Key) + "\n"
+		result += fmt.Sprintf("%s\n", *(v.Key))
 	}
 
-	return result
+	return
 }
 
-func C(strings []string, transformedStrings []string, ignoreCase bool) string {
-	entries := MainAlgo(strings, transformedStrings, ignoreCase)
-	result := ""
+func cParamAlgo(strings []string, transformedStrings []string, ignoreCase bool) (result string) {
+	entries := mainAlgo(strings, transformedStrings, ignoreCase)
 	for _, v := range entries {
-		result += strconv.Itoa(v.Value) + " " + *(v.Key) + "\n"
+		result += fmt.Sprintf("%d %s\n", v.Value, *(v.Key))
 	}
 
-	return result
+	return
 }
 
-func D(strings []string, transformedStrings []string, ignoreCase bool) string {
-	entries := MainAlgo(strings, transformedStrings, ignoreCase)
-	result := ""
+func dParamAlgo(strings []string, transformedStrings []string, ignoreCase bool) (result string) {
+	entries := mainAlgo(strings, transformedStrings, ignoreCase)
 	for _, v := range entries {
 		if v.Value >= 2 {
-			result += *(v.Key) + "\n"
+			result += fmt.Sprintf("%s\n", *(v.Key))
 		}
 	}
 
-	return result
+	return
 }
 
-func U(strings []string, transformedStrings []string, ignoreCase bool) string {
-	entries := MainAlgo(strings, transformedStrings, ignoreCase)
-	result := ""
+func uParamAlgo(strings []string, transformedStrings []string, ignoreCase bool) (result string) {
+	entries := mainAlgo(strings, transformedStrings, ignoreCase)
 	for _, v := range entries {
 		if v.Value == 1 {
-			result += *(v.Key) + "\n"
+			result += fmt.Sprintf("%s\n", *(v.Key))
 		}
 	}
 
-	return result
+	return
 }
 
-type StringEntries struct {
+type stringEntries struct {
 	Key   *string
 	Value int
 }
 
-func MainAlgo(strings []string, transformedStrings []string, ignoreCase bool) []*StringEntries {
+func mainAlgo(strings []string, transformedStrings []string, ignoreCase bool) []*stringEntries {
 	stringsBackup := strings
 	if transformedStrings != nil {
 		strings = transformedStrings
 	}
 
-	result := make([]*StringEntries, 0, 10)
+	result := make([]*stringEntries, 0, 10)
 	j := 0
-	stringEntries := &StringEntries{
+	stringEntries_ := &stringEntries{
 		&(stringsBackup)[j],
 		1,
 	}
-	result = append(result, stringEntries)
+	result = append(result, stringEntries_)
 	for i := 1; i < len(strings); i++ {
-		if !StringsEquals((strings)[j], (strings)[i], ignoreCase) {
-			//if (*in)[j] != (*in)[i] {
-			j++
-			(strings)[j] = (strings)[i]
-			(stringsBackup)[j] = (stringsBackup)[i]
-
-			stringEntries = &StringEntries{
-				&(stringsBackup)[j],
-				1,
-			}
-			result = append(result, stringEntries)
-		} else {
-			stringEntries.Value += 1
+		if StringsEquals((strings)[j], (strings)[i], ignoreCase) {
+			stringEntries_.Value += 1
+			continue
 		}
+		j++
+		(strings)[j] = (strings)[i]
+		(stringsBackup)[j] = (stringsBackup)[i]
+
+		stringEntries_ = &stringEntries{
+			&(stringsBackup)[j],
+			1,
+		}
+		result = append(result, stringEntries_)
 	}
 	strings = strings[:j+1]
 

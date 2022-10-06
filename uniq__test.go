@@ -66,20 +66,19 @@ func TestValidateArguments(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		opts, err := ValidateArguments(v.args)
+		opts, err := validateArguments(v.args)
 		require.Equal(t, v.expectedResult, opts, err)
 	}
 }
 
 func TestValidateArgumentsIncorrect(t *testing.T) {
-	description := errors.New(description)
-
 	type testData struct {
 		flags   []string
 		error   error
 		message string
 	}
 
+	description := errors.New(description)
 	tests := []testData{
 		{[]string{"-c", "-d"}, description, "This options can not use both"},
 		{[]string{"-d", "-u"}, description, "This options can not use both"},
@@ -90,7 +89,7 @@ func TestValidateArgumentsIncorrect(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		_, err := ValidateArguments(v.flags)
+		_, err := validateArguments(v.flags)
 		if errors.Is(err, v.error) {
 			t.Errorf(v.message)
 		}
@@ -116,7 +115,7 @@ I love music of Kartik.
 	}
 
 	for _, v := range tests {
-		result := WithoutParams(v.strings, nil, false)
+		result := withoutParamsAlgo(v.strings, nil, false)
 		if result != v.expectedResult {
 			t.Errorf(v.message)
 		}
@@ -142,7 +141,7 @@ I love music of Kartik.
 	}
 
 	for _, v := range tests {
-		result := WithoutParams(v.strings, nil, true)
+		result := withoutParamsAlgo(v.strings, nil, true)
 		if result != v.expectedResult {
 			t.Errorf(v.message)
 		}
@@ -168,7 +167,7 @@ func TestC(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		result := C(v.strings, nil, true)
+		result := cParamAlgo(v.strings, nil, true)
 		if result != v.expectedResult {
 			t.Errorf(v.message)
 		}
@@ -192,7 +191,7 @@ I love music of Kartik.
 	}
 
 	for _, v := range tests {
-		result := D(v.strings, nil, true)
+		result := dParamAlgo(v.strings, nil, true)
 		if result != v.expectedResult {
 			t.Errorf(v.message)
 		}
@@ -215,7 +214,7 @@ Thanks.
 	}
 
 	for _, v := range tests {
-		result := U(v.strings, nil, true)
+		result := uParamAlgo(v.strings, nil, true)
 		if result != v.expectedResult {
 			t.Errorf(v.message)
 		}
