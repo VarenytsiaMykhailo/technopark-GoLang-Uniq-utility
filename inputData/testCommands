@@ -1,0 +1,20 @@
+go run uniq.go inputData/withoutParams
+go run uniq.go inputData/withoutParams output
+go run uniq.go -i inputData/withoutParamsI output
+
+go run uniq.go -c inputData/C output
+go run uniq.go -c -i inputData/CI output
+
+go run uniq.go -d inputData/D output
+go run uniq.go -d -i inputData/DI output
+
+go run uniq.go -u inputData/U output
+go run uniq.go -u -i inputData/UI output
+
+go run uniq.go -f 1 inputData/F output
+go run uniq.go -f 1 -i inputData/FI output
+
+go run uniq.go -s 1 inputData/S output
+go run uniq.go -s 1 -i inputData/SI output
+
+
