@@ -1,1 +1,1 @@
-# technopark-GoLang-Uniq-utility2
+# technopark-GoLang-Uniq-utility
